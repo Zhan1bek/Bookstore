@@ -1,0 +1,52 @@
+### Create Book
+POST localhost:8081/api/v1/books
+Content-Type: application/json
+
+{
+  "title": "The Great Gatsby",
+  "author": "F. Scott Fitzgerald",
+  "price": 12.99,
+  "stock_quantity": 100
+}
+
+> {%
+    client.test("Request executed successfully", function() {
+        client.assert(response.status === 200, "Expected response status to be 201");
+    });
+%}
+
+### Get Book
+GET localhost:8081/api/v1/books/1
+
+> {%
+    client.test("Request executed successfully", function() {
+        client.assert(response.status === 200, "Expected response status to be 200");
+    });
+%}
+
+### Update Book
+PUT localhost:8081/api/v1/books/1
+Content-Type: application/json
+
+{
+  "title": "The Great Gatsby",
+  "author": "F. Scott Fitzgerald",
+  "price": 15.99,
+  "stock_quantity": 50
+}
+
+> {%
+    client.test("Request executed successfully", function() {
+        client.assert(response.status === 200, "Expected response status to be 200");
+    });
+%}
+
+### Delete Book
+DELETE localhost:8081/api/v1/books/1
+Content-Type: application/json
+
+> {%
+    client.test("Request executed successfully", function() {
+        client.assert(response.status === 200, "Expected response status to be 200");
+    });
+%}
