@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
 	"time"
 )
@@ -21,6 +22,66 @@ type BookModel struct {
 	DB       *sql.DB
 	InfoLog  *log.Logger
 	ErrorLog *log.Logger
+}
+
+func (m BookModel) GetAll(title string, author string, priceRangeStart, priceRangeEnd float64,
+	filters Filters) ([]*Book, Metadata, error) {
+
+	// Construct the SQL query with filtering and ordering.
+	query := fmt.Sprintf(
+		`
+        SELECT count(*) OVER(), id, created_at, updated_at, title, author, price, stock_quantity
+        FROM books
+        WHERE (LOWER(title) LIKE LOWER($1) OR $1 = '')
+        AND (LOWER(author) LIKE LOWER($2) OR $2 = '')
+        AND (price >= $3 OR $3 = 0)
+        AND (price <= $4 OR $4 = 0)
+        ORDER BY %s %s, id ASC
+        LIMIT $5 OFFSET $6
+        `,
+		filters.sortColumn(), filters.sortDirection())
+
+	// Create a context with a 3-second timeout.
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	// Prepare the arguments for the query.
+	args := []interface{}{"%" + title + "%", "%" + author + "%", priceRangeStart, priceRangeEnd, filters.limit(), filters.offset()}
+
+	// Execute the query.
+	rows, err := m.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, Metadata{}, err
+	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			m.ErrorLog.Println(err)
+		}
+	}()
+
+	// Initialize the variables for scanning the rows.
+	totalRecords := 0
+	var books []*Book
+
+	// Iterate over the result set and scan each row into a Book struct.
+	for rows.Next() {
+		var book Book
+		err := rows.Scan(&totalRecords, &book.ID, &book.CreatedAt, &book.UpdatedAt, &book.Title, &book.Author, &book.Price, &book.StockQuantity)
+		if err != nil {
+			return nil, Metadata{}, err
+		}
+		books = append(books, &book)
+	}
+
+	// Check for any error that occurred during iteration.
+	if err = rows.Err(); err != nil {
+		return nil, Metadata{}, err
+	}
+
+	// Prepare the metadata.
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+
+	return books, metadata, nil
 }
 
 func (m *BookModel) Insert(book *Book) error {

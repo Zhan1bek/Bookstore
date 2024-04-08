@@ -4,10 +4,12 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
+	"github.com/Zhan1bek/BookStore/pkg/jsonlog"
 	"github.com/Zhan1bek/BookStore/pkg/models"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
+	"sync"
 
 	_ "github.com/lib/pq"
 )
@@ -23,6 +25,8 @@ type config struct {
 type application struct {
 	config config
 	models models.Models
+	logger *jsonlog.Logger
+	wg     sync.WaitGroup
 }
 
 func main() {

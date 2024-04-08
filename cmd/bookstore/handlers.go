@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"github.com/Zhan1bek/BookStore/pkg/models"
+	"github.com/Zhan1bek/BookStore/pkg/validator"
 	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
@@ -23,18 +24,6 @@ func (app *application) respondWithJSON(w http.ResponseWriter, code int, payload
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	w.Write(response)
-}
-
-func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst interface{}) error {
-	dec := json.NewDecoder(r.Body)
-	dec.DisallowUnknownFields()
-
-	err := dec.Decode(dst)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (app *application) createBookHandler(w http.ResponseWriter, r *http.Request) {
@@ -65,6 +54,28 @@ func (app *application) createBookHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	app.respondWithJSON(w, http.StatusCreated, book)
+}
+
+func (app *application) GetBooks(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Title     string
+		Author    string
+		PriceFrom float64
+		PriceTo   float64
+		models.Filters
+	}
+
+	v := validator.New()
+	qs := r.URL.Query()
+
+	input.Title = app.readStrings(qs, "title", "")
+	input.Author = app.readStrings(qs, "author", "")
+	input.PriceFrom = app.readFloat(qs, "priceFrom", 0, v)
+	input.PriceTo = app.readFloat(qs, "priceTo", 0, v)
+	// Get the page and page_size query string value as integers. Notice that we set the default
+	// page value to 1 and default page_size to 20, and that we pass the validator instance
+	// as the final argument.
+
 }
 
 // Обработчик для получения книги по ID
