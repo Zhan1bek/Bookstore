@@ -25,18 +25,24 @@ type BookModel struct {
 
 func (m *BookModel) Insert(book *Book) error {
 	query := `
-    INSERT INTO books (title, author, price, stock_quantity) 
-    VALUES ($1, $2, $3, $4) 
-    RETURNING id, created_at, updated_at
+        INSERT INTO books (title, author, price, stock_quantity) 
+        VALUES ($1, $2, $3, $4) 
+        RETURNING id, created_at, updated_at
     `
 	args := []interface{}{book.Title, book.Author, book.Price, book.StockQuantity}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	return m.DB.QueryRowContext(ctx, query, args...).Scan(&book.ID, &book.CreatedAt, &book.UpdatedAt)
+	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&book.ID, &book.CreatedAt, &book.UpdatedAt)
+	if err != nil {
+		m.ErrorLog.Printf("Ошибка при вставке новой книги: %v", err)
+		return err
+	}
+	m.InfoLog.Printf("Книга [%s] успешно добавлена с ID %d", book.Title, book.ID)
+	return nil
 }
 
-func (m *BookModel) Get(id int) (*Book, error) {
+func (m BookModel) Get(id int) (*Book, error) {
 	query := `
     SELECT id, created_at, updated_at, title, author, price, stock_quantity
     FROM books
@@ -54,7 +60,7 @@ func (m *BookModel) Get(id int) (*Book, error) {
 	return &book, nil
 }
 
-func (m *BookModel) Update(book *Book) error {
+func (m BookModel) Update(book *Book) error {
 	query := `
     UPDATE books
     SET title = $1, author = $2, price = $3, stock_quantity = $4
@@ -68,7 +74,7 @@ func (m *BookModel) Update(book *Book) error {
 	return m.DB.QueryRowContext(ctx, query, args...).Scan(&book.UpdatedAt)
 }
 
-func (m *BookModel) Delete(id int) error {
+func (m BookModel) Delete(id int) error {
 	query := `
     DELETE FROM books
     WHERE id = $1

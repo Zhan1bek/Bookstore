@@ -5,18 +5,18 @@ Content-Type: application/json
 {
   "title": "The Great Gatsby",
   "author": "F. Scott Fitzgerald",
-  "price": 12.99,
+  "price": 12,
   "stock_quantity": 100
 }
 
 > {%
     client.test("Request executed successfully", function() {
-        client.assert(response.status === 200, "Expected response status to be 201");
+        client.assert(response.status === 201, "Expected response status to be 201");
     });
 %}
 
 ### Get Book
-GET localhost:8081/api/v1/books/1
+GET localhost:8081/api/v1/books/6
 
 > {%
     client.test("Request executed successfully", function() {
@@ -25,13 +25,13 @@ GET localhost:8081/api/v1/books/1
 %}
 
 ### Update Book
-PUT localhost:8081/api/v1/books/1
+PUT localhost:8081/api/v1/books/6
 Content-Type: application/json
 
 {
   "title": "The Great Gatsby",
   "author": "F. Scott Fitzgerald",
-  "price": 15.99,
+  "price": 15,
   "stock_quantity": 50
 }
 
@@ -42,7 +42,7 @@ Content-Type: application/json
 %}
 
 ### Delete Book
-DELETE localhost:8081/api/v1/books/1
+DELETE localhost:8081/api/v1/books/6
 Content-Type: application/json
 
 > {%

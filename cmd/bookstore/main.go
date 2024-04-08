@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"flag"
+	"fmt"
 	"github.com/Zhan1bek/BookStore/pkg/models"
 	"github.com/gorilla/mux"
 	"log"
@@ -28,7 +29,7 @@ func main() {
 	var cfg config
 	flag.StringVar(&cfg.port, "port", ":8081", "API server port")
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
-	flag.StringVar(&cfg.db.dsn, "db-dsn", "postgres://postgres:3711157al@localhost/bookstore?sslmode=disable", "PostgreSQL DSN")
+	flag.StringVar(&cfg.db.dsn, "db-dsn", "postgres://postgres@localhost:5432/bookstore?sslmode=disable", "PostgreSQL DSN")
 	flag.Parse()
 
 	db, err := openDB(cfg)
@@ -49,8 +50,16 @@ func main() {
 func openDB(cfg config) (*sql.DB, error) {
 	db, err := sql.Open("postgres", cfg.db.dsn)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ошибка при открытии соединения с базой данных: %w", err)
 	}
+
+	// Проверяем подключение к базе данных
+	err = db.Ping()
+	if err != nil {
+		return nil, fmt.Errorf("ошибка при подключении к базе данных: %w", err)
+	}
+
+	log.Println("Успешное подключение к базе данных")
 	return db, nil
 }
 
