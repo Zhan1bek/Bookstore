@@ -77,6 +77,7 @@ func (app *application) run() {
 	bookRouter.HandleFunc("/{id:[0-9]+}", app.updateBookHandler).Methods("PUT")    // Обновление книги
 	bookRouter.HandleFunc("/{id:[0-9]+}", app.deleteBookHandler).Methods("DELETE") // Удаление книги
 
+	bookRouter.HandleFunc("/list", app.GetBookList).Methods("GET")
 	// Запуск сервера
 	log.Printf("Starting server on %s\n", app.config.port)
 	err := http.ListenAndServe(app.config.port, r)

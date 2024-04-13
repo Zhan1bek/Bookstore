@@ -16,7 +16,7 @@ Content-Type: application/json
 %}
 
 ### Get Book
-GET localhost:8081/api/v1/books/6
+GET localhost:8081/api/v1/books/5
 
 > {%
     client.test("Request executed successfully", function() {
