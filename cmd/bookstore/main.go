@@ -3,25 +3,22 @@ package main
 import (
 	"database/sql"
 	"flag"
-	"fmt"
-	"github.com/Zhan1bek/BookStore/pkg/jsonlog"
 	"github.com/Zhan1bek/BookStore/pkg/models"
-	"github.com/gorilla/mux"
-	"log"
-	"net/http"
+	"os"
 	"sync"
+
+	"github.com/Zhan1bek/BookStore/pkg/jsonlog"
 
 	_ "github.com/lib/pq"
 )
 
 type config struct {
-	port string
+	port int
 	env  string
 	db   struct {
 		dsn string
 	}
 }
-
 type application struct {
 	config config
 	models models.Models
@@ -31,57 +28,49 @@ type application struct {
 
 func main() {
 	var cfg config
-	flag.StringVar(&cfg.port, "port", ":8081", "API server port")
+	flag.IntVar(&cfg.port, "port", 8081, "API server port")
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
 	flag.StringVar(&cfg.db.dsn, "db-dsn", "postgres://postgres@localhost:5432/bookstore?sslmode=disable", "PostgreSQL DSN")
 	flag.Parse()
 
+	// Init logger
+	logger := jsonlog.NewLogger(os.Stdout, jsonlog.LevelInfo)
+
+	// Connect to DB
 	db, err := openDB(cfg)
 	if err != nil {
-		log.Fatal(err)
+		logger.PrintError(err, nil)
 		return
 	}
-	defer db.Close()
+	// Defer a call to db.Close() so that the connection pool is closed before the main()
+	// function exits.
+	defer func() {
+		if err := db.Close(); err != nil {
+			logger.PrintFatal(err, nil)
+		}
+	}()
 
 	app := &application{
 		config: cfg,
 		models: models.NewModels(db),
+		logger: logger,
 	}
 
-	app.run()
+	// Call app.server() to start the server.
+	if err := app.serve(); err != nil {
+		logger.PrintFatal(err, nil)
+	}
 }
 
 func openDB(cfg config) (*sql.DB, error) {
+	// Use sql.Open() to create an empty connection pool, using the DSN from the config // struct.
 	db, err := sql.Open("postgres", cfg.db.dsn)
 	if err != nil {
-		return nil, fmt.Errorf("ошибка при открытии соединения с базой данных: %w", err)
+		return nil, err
 	}
-
-	// Проверяем подключение к базе данных
 	err = db.Ping()
 	if err != nil {
-		return nil, fmt.Errorf("ошибка при подключении к базе данных: %w", err)
+		return nil, err
 	}
-
-	log.Println("Успешное подключение к базе данных")
 	return db, nil
-}
-
-func (app *application) run() {
-	r := mux.NewRouter()
-
-	// Настройка маршрутов для книг
-	bookRouter := r.PathPrefix("/api/v1/books").Subrouter()
-	bookRouter.HandleFunc("", app.createBookHandler).Methods("POST")               // Создание книги
-	bookRouter.HandleFunc("/{id:[0-9]+}", app.getBookHandler).Methods("GET")       // Получение книги по ID
-	bookRouter.HandleFunc("/{id:[0-9]+}", app.updateBookHandler).Methods("PUT")    // Обновление книги
-	bookRouter.HandleFunc("/{id:[0-9]+}", app.deleteBookHandler).Methods("DELETE") // Удаление книги
-
-	bookRouter.HandleFunc("/list", app.GetBookList).Methods("GET")
-	// Запуск сервера
-	log.Printf("Starting server on %s\n", app.config.port)
-	err := http.ListenAndServe(app.config.port, r)
-	if err != nil {
-		log.Fatal(err)
-	}
 }

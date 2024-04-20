@@ -14,7 +14,20 @@ Content-Type: application/json
         client.assert(response.status === 201, "Expected response status to be 201");
     });
 %}
+###Auth
+POST localhost:8081/api/v1/users
+Content-Type: application/json
+{
+  "name": "LOL",
+  "email": "john.doe@example.com",
+  "password": "securepassword123"
+}
 
+> {%
+    client.test("Request executed successfully", function() {
+        client.assert(response.status === 202, "Expected response status to be 202");
+    });
+%}
 ### Get Book
 GET localhost:8081/api/v1/books/5
 

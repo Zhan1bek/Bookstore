@@ -2,10 +2,11 @@ package main
 
 import (
 	"errors"
-	"github.com/Zhan1bek/BookStore/pkg/models"
-	"github.com/Zhan1bek/BookStore/pkg/validator"
 	"net/http"
 	"time"
+
+	"github.com/Zhan1bek/BookStore/pkg/models"
+	"github.com/Zhan1bek/BookStore/pkg/validator"
 )
 
 func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Request) {
@@ -59,8 +60,12 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		}
 		return
 	}
-	// Write a JSON response containing the user data along with a 201 Created status
-	// code.
+	// Add the "movies:read" permission for the new user.
+	err = app.models.Permissions.AddForUser(user.ID, "books:read")
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
 
 	token, err := app.models.Tokens.New(user.ID, 3*24*time.Hour, models.ScopeActivation)
 	if err != nil {
@@ -81,30 +86,26 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		app.serverErrorResponse(w, r, err)
 	}
 }
+
 func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Request) {
-	// Parse the plaintext activation token from the request body
 	var input struct {
 		TokenPlaintext string `json:"token"`
 	}
-
 	err := app.readJSON(w, r, &input)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
-
 	// Validate the plaintext token provided by the client.
 	v := validator.New()
-
 	if models.ValidateTokenPlaintext(v, input.TokenPlaintext); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
-
-	// Retrieve the details of the user associated with the token using the GetForToken() method.
-	// If no matching record is found, then we let the client know that the token they provided
-	// is not valid.
-	user, err := app.models.Users.GetForToken(models.ScopeActivation, input.TokenPlaintext)
+	// Retrieve the details of the user associated with the token using the
+	// GetForToken() method (which we will create in a minute). If no matching record
+	// is found, then we let the client know that the token they provided is not valid.
+	user, err := app.models.Users.GetByToken(models.ScopeActivation, input.TokenPlaintext)
 	if err != nil {
 		switch {
 		case errors.Is(err, models.ErrRecordNotFound):
@@ -115,12 +116,10 @@ func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 		}
 		return
 	}
-
 	// Update the user's activation status.
 	user.Activated = true
-
-	// Save the updated user record in our database, checking for any edit conflicts in the same
-	// way that we did for our move records.
+	// Save the updated user record in our database, checking for any edit conflicts in
+	// the same way that we did for our movie records.
 	err = app.models.Users.Update(user)
 	if err != nil {
 		switch {
@@ -131,13 +130,16 @@ func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 		}
 		return
 	}
-
-	// If everything went successfully above, then delete all activation tokens for the user.
+	// If everything went successfully, then we delete all activation tokens for the
+	// user.
 	err = app.models.Tokens.DeleteAllForUser(models.ScopeActivation, user.ID)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
-
-	app.writeJSON(w, http.StatusOK, envelope{"user": user}, nil)
+	// Send the updated user details to the client in a JSON response.
+	err = app.writeJSON(w, http.StatusOK, envelope{"user": user}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }
