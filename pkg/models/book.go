@@ -146,3 +146,29 @@ func (m BookModel) Delete(id int) error {
 	_, err := m.DB.ExecContext(ctx, query, id)
 	return err
 }
+
+func (m *BookModel) GetByTitle(title string) (*Book, error) {
+	query := `
+    SELECT id, title, author, price, stock_quantity, created_at, updated_at
+    FROM books
+    WHERE title = $1;
+    `
+	var book Book
+	err := m.DB.QueryRow(query, title).Scan(
+		&book.ID, &book.Title, &book.Author, &book.Price, &book.StockQuantity, &book.CreatedAt, &book.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &book, nil
+}
+
+func (m *BookModel) UpdateQuantity(bookID int64, newQuantity int) error {
+	query := `
+    UPDATE books
+    SET stock_quantity = $1
+    WHERE id = $2;
+    `
+	_, err := m.DB.Exec(query, newQuantity, bookID)
+	return err
+}

@@ -143,3 +143,32 @@ func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 		app.serverErrorResponse(w, r, err)
 	}
 }
+
+func (app *application) ListPurchases(w http.ResponseWriter, r *http.Request) {
+	token, err := app.GetToken(w, r)
+	if err != nil {
+		app.invalidCredentialsResponse(w, r)
+		return
+	}
+
+	user, err := app.models.Users.GetByToken(models.ScopeAuthentication, token)
+	if err != nil {
+		switch {
+		case errors.Is(err, models.ErrRecordNotFound):
+			app.invalidAuthenticationTokenResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	// Получаем все покупки пользователя из базы данных
+	purchases, err := app.models.Purchase.GetAllForUser(user.ID)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	// Возвращаем данные о покупках в формате JSON
+	app.writeJSON(w, http.StatusOK, envelope{"purchases": purchases}, nil)
+}

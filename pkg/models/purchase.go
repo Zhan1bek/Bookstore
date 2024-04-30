@@ -23,24 +23,14 @@ type PurchaseModel struct {
 	ErrorLog *log.Logger
 }
 
-func (m PurchaseModel) Insert(purchase *Purchase) error {
+func (m *PurchaseModel) Insert(purchase *Purchase) error {
 	query := `
-	INSERT INTO purchases (user_id, book_id, quantity, total_price, created_at)
-	VALUES ($1, $2, $3, $4, $5)
-	RETURNING id
-	`
-	args := []interface{}{
-		purchase.UserID,
-		purchase.BookID,
-		purchase.Quantity,
-		purchase.TotalPrice,
-		time.Now(),
-	}
-
+    INSERT INTO purchases (user_id, book_id, quantity, total_price, created_at)
+    VALUES ($1, $2, $3, $4, NOW()) RETURNING id;
+    `
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-
-	return m.DB.QueryRowContext(ctx, query, args...).Scan(&purchase.ID)
+	return m.DB.QueryRowContext(ctx, query, purchase.UserID, purchase.BookID, purchase.Quantity, purchase.TotalPrice).Scan(&purchase.ID)
 }
 
 func (m PurchaseModel) GetByUserID(userID int64) ([]*Book, error) {
@@ -81,4 +71,34 @@ func (m PurchaseModel) GetByUserID(userID int64) ([]*Book, error) {
 	}
 
 	return books, nil
+}
+
+func (m *PurchaseModel) GetAllForUser(userID int64) ([]*Purchase, error) {
+	query := `
+    SELECT id, user_id, book_id, quantity, total_price, created_at
+    FROM purchases
+    WHERE user_id = $1;
+    `
+	var purchases []*Purchase
+
+	rows, err := m.DB.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var p Purchase
+		err := rows.Scan(&p.ID, &p.UserID, &p.BookID, &p.Quantity, &p.TotalPrice, &p.CreatedAt)
+		if err != nil {
+			return nil, err
+		}
+		purchases = append(purchases, &p)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return purchases, nil
 }

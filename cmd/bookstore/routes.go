@@ -21,7 +21,7 @@ func (app *application) routes() http.Handler {
 	bookRouter.HandleFunc("/{id:[0-9]+}", app.getBookHandler).Methods("GET")       // Получение книги по ID
 	bookRouter.HandleFunc("/{id:[0-9]+}", app.updateBookHandler).Methods("PUT")    // Обновление книги
 	bookRouter.HandleFunc("/{id:[0-9]+}", app.deleteBookHandler).Methods("DELETE") // Удаление книги
-
+	bookRouter.HandleFunc("/buy", app.requirePermissions("books:read", app.BuyBook)).Methods("POST")
 	bookRouter.HandleFunc("/list", app.GetBookList).Methods("GET")
 
 	//Users handlers
@@ -30,7 +30,7 @@ func (app *application) routes() http.Handler {
 	users1.HandleFunc("", app.registerUserHandler).Methods("POST")
 	users1.HandleFunc("/activated", app.activateUserHandler).Methods("PUT")
 	users1.HandleFunc("/login", app.createAuthenticationTokenHandler).Methods("POST")
-
+	users1.HandleFunc("/purchases", app.requirePermissions("books:read", app.ListPurchases)).Methods("GET")
 	// Wrap the router with the panic recovery middleware and rate limit middleware.
 	return app.authenticate(r)
 }
