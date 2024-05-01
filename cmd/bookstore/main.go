@@ -63,14 +63,23 @@ func main() {
 }
 
 func openDB(cfg config) (*sql.DB, error) {
-	// Use sql.Open() to create an empty connection pool, using the DSN from the config // struct.
-	db, err := sql.Open("postgres", cfg.db.dsn)
+	// Получаем значение DSN из переменных окружения
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		dsn = cfg.db.dsn // Если переменная окружения не задана, используем значение по умолчанию из конфигурации
+	}
+
+	// Используем sql.Open() для создания пула соединений, используя DSN
+	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		return nil, err
 	}
+
+	// Проверяем соединение
 	err = db.Ping()
 	if err != nil {
 		return nil, err
 	}
+
 	return db, nil
 }
