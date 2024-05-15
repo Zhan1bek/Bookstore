@@ -2,7 +2,7 @@
 FROM golang:1.22.1 as builder
 
 # Set the Current Working Directory inside the container
-WORKDIR /Bookstore
+WORKDIR /app
 
 # Copy go mod and sum files
 COPY go.mod go.sum ./
@@ -16,7 +16,8 @@ RUN go mod download
 COPY . .
 
 # Build the application, disable CGO to create a static binary
-RUN CGO_ENABLED=0 GOOS=linux go build -o Bookstore ./cmd/bookstore/
+RUN CGO_ENABLED=0 GOOS=linux go build -o demo-app ./cmd/bookstore
+
 
 # Use a smaller image to run the app
 FROM alpine:latest
@@ -27,8 +28,8 @@ WORKDIR /root/
 RUN ls -la
 
 # Copy the pre-built binary file from the previous stage
-COPY --from=builder /Bookstore/ .
-COPY --from=builder /Bookstore/pkg/migrations ./migrations
+COPY --from=builder /app/demo-app .
+COPY --from=builder /app/pkg/migrations ./migrations
 
 # Command to run the executable
 CMD ["./demo-app"]
