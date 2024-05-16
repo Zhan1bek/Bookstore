@@ -31,6 +31,12 @@ func (app *application) routes() http.Handler {
 	users1.HandleFunc("/activated", app.activateUserHandler).Methods("PUT")
 	users1.HandleFunc("/login", app.createAuthenticationTokenHandler).Methods("POST")
 	users1.HandleFunc("/purchases", app.requirePermissions("books:read", app.ListPurchases)).Methods("GET")
+
+	commentsRouter := r.PathPrefix("/api/v1/comments").Subrouter()
+	commentsRouter.HandleFunc("", app.CreateComment).Methods("POST")
+	commentsRouter.HandleFunc("", app.GetComments).Methods("GET")
+	commentsRouter.HandleFunc("", app.DeleteComment).Methods("DELETE")
+
 	// Wrap the router with the panic recovery middleware and rate limit middleware.
 	return app.authenticate(r)
 }
