@@ -62,6 +62,7 @@ func (app *application) GetBookList(w http.ResponseWriter, r *http.Request) {
 		Author    string
 		PriceFrom float64
 		PriceTo   float64
+		MinRating float64
 		models.Filters
 	}
 
@@ -73,6 +74,7 @@ func (app *application) GetBookList(w http.ResponseWriter, r *http.Request) {
 	input.Author = app.readStrings(qs, "author", "")
 	input.PriceFrom = app.readFloat(qs, "priceFrom", 0, v)
 	input.PriceTo = app.readFloat(qs, "priceTo", 0, v)
+	input.MinRating = app.readFloat(qs, "minRating", 0, v)
 
 	// Получение параметров пагинации и сортировки
 	input.Filters.Page = app.readInt(qs, "page", 1, v)
@@ -80,7 +82,7 @@ func (app *application) GetBookList(w http.ResponseWriter, r *http.Request) {
 	input.Filters.Sort = app.readStrings(qs, "sort", "id")
 
 	// Установка списка допустимых параметров для сортировки
-	input.Filters.SortSafelist = []string{"id", "title", "author", "price", "-id", "-title", "-author", "-price"}
+	input.Filters.SortSafelist = []string{"id", "title", "author", "price", "avg_rating", "-id", "-title", "-author", "-price", "-avg_rating"}
 
 	// Валидация фильтров
 	if models.ValidateFilters(v, input.Filters); !v.Valid() {
@@ -89,7 +91,7 @@ func (app *application) GetBookList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Получение списка книг с учетом фильтров
-	books, metadata, err := app.models.Books.GetAll(input.Title, input.Author, input.PriceFrom, input.PriceTo, input.Filters)
+	books, metadata, err := app.models.Books.GetAll(input.Title, input.Author, input.PriceFrom, input.PriceTo, input.MinRating, input.Filters)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -111,7 +113,7 @@ func (app *application) getBookHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	book, err := app.models.Books.Get(id)
+	book, err := app.models.Books.Get(int64(id))
 	if err != nil {
 		app.respondWithError(w, http.StatusNotFound, "Book not found")
 		return
@@ -174,7 +176,7 @@ func (app *application) deleteBookHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err = app.models.Books.Delete(id)
+	err = app.models.Books.Delete(int64(id))
 	if err != nil {
 		app.respondWithError(w, http.StatusInternalServerError, "500 Internal Server Error")
 		return

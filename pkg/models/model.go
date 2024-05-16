@@ -13,6 +13,7 @@ type Models struct {
 	Permissions PermissionModel
 	Purchase    PurchaseModel
 	Comment     CommentModel
+	Rating      RatingModel
 }
 
 func NewModels(db *sql.DB) Models {
@@ -45,6 +46,11 @@ func NewModels(db *sql.DB) Models {
 			ErrorLog: errorLog,
 		},
 		Comment: CommentModel{
+			DB:       db,
+			InfoLog:  infoLog,
+			ErrorLog: errorLog,
+		},
+		Rating: RatingModel{
 			DB:       db,
 			InfoLog:  infoLog,
 			ErrorLog: errorLog,

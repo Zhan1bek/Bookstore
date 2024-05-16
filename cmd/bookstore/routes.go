@@ -23,6 +23,7 @@ func (app *application) routes() http.Handler {
 	bookRouter.HandleFunc("/{id:[0-9]+}", app.deleteBookHandler).Methods("DELETE") // Удаление книги
 	bookRouter.HandleFunc("/buy", app.requirePermissions("books:read", app.BuyBook)).Methods("POST")
 	bookRouter.HandleFunc("/list", app.GetBookList).Methods("GET")
+	bookRouter.HandleFunc("/{id}/rate", app.rateBook).Methods("POST")
 
 	//Users handlers
 	users1 := r.PathPrefix("/api/v1/users").Subrouter()
